@@ -13,16 +13,18 @@ if __name__ == '__main__':
   config = get_config()
 
   db = SqliteDatabase()
-  path = "mp3/"
+  path = os.path.join(os.getcwd(), "mp3")
 
   # fingerprint all files in a directory
-
+  print(path)
   for filename in os.listdir(path):
+    print(path)
     if filename.endswith(".mp3"):
-      reader = FileReader(path + filename)
+      reader = FileReader(path +"\\"+ filename)
       audio = reader.parse_audio()
 
       song = db.get_song_by_filehash(audio['file_hash'])
+      print(audio["file_hash"])
       song_id = db.add_song(filename, audio['file_hash'])
 
       msg = ' * %s %s: %s' % (
