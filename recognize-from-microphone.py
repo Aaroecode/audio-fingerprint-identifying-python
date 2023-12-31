@@ -4,9 +4,9 @@ import sys
 import libs
 import libs.fingerprint as fingerprint
 import argparse
-
+import numpy as np
 from argparse import RawTextHelpFormatter
-from itertools import izip_longest
+from itertools import zip_longest
 from termcolor import colored
 from libs.config import get_config
 from libs.reader_microphone import MicrophoneReader
@@ -75,7 +75,7 @@ if __name__ == '__main__':
   def grouper(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     return (filter(None, values) for values
-            in izip_longest(fillvalue=fillvalue, *args))
+            in zip_longest(fillvalue=fillvalue, *args))
 
   data = reader.get_recorded_data()
 
@@ -96,6 +96,7 @@ if __name__ == '__main__':
     return return_matches(hashes)
 
   def return_matches(hashes):
+    print(hashes)
     mapper = {}
     for hash, offset in hashes:
       mapper[hash.upper()] = offset
@@ -108,8 +109,8 @@ if __name__ == '__main__':
         FROM fingerprints
         WHERE upper(hash) IN (%s)
       """
+      split_values = tuple(split_values)
       query = query % ', '.join('?' * len(split_values))
-
       x = db.executeAll(query, split_values)
       matches_found = len(x)
 
@@ -126,10 +127,11 @@ if __name__ == '__main__':
           len(split_values),
           len(values)
         ))
-
       for hash, sid, offset in x:
+        s9array = np.array([offset], dtype='S8')
+        int64_array = np.frombuffer(s9array, dtype='int64')
         # (sid, db_offset - song_sampled_offset)
-        yield (sid, offset - mapper[hash])
+        yield (sid, int64_array[0] - mapper[hash])
 
   for channeln, channel in enumerate(data):
     # TODO: Remove prints or change them into optional logging.
