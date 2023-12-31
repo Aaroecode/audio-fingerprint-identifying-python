@@ -24,7 +24,7 @@ class FileReader(BaseReader):
   # pydub does not support 24-bit wav files, use wavio when this occurs
   def parse_audio(self):
     limit = None
-    # limit = 10
+    limit = 10
 
     songname, extension = os.path.splitext(os.path.basename(self.filename))
 
@@ -39,7 +39,6 @@ class FileReader(BaseReader):
       channels = []
       for chn in range(audiofile.channels):
         channels.append(data[chn::audiofile.channels])
-
       fs = audiofile.frame_rate
     except audioop.error:
       print('audioop.error')

@@ -46,7 +46,7 @@ MAX_HASH_TIME_DELTA = 200
 # If True, will sort peaks temporally for fingerprinting;
 # not sorting will cut down number of fingerprints, but potentially
 # affect performance.
-PEAK_SORT = True
+PEAK_SORT = False
 
 # Number of bits to throw away from the front of the SHA1 hash in the
 # fingerprint calculation. The more you throw away, the less storage, but
@@ -93,11 +93,12 @@ def fingerprint(channel_samples, Fs=DEFAULT_FS,
 
     # find local maxima
     local_maxima = get_2D_peaks(arr2D, plot=plots, amp_min=amp_min)
-
+    local_maxima = tuple(local_maxima)
     msg = '   local_maxima: %d of frequency & time pairs'
-    print (colored(msg, attrs=['dark']) % len(list(local_maxima)))
+    print (colored(msg, attrs=['dark']) % len(local_maxima))
 
     # return hashes
+    
     return generate_hashes(local_maxima, fan_value=fan_value)
 
 def get_2D_peaks(arr2D, plot=False, amp_min=DEFAULT_AMP_MIN):
@@ -108,8 +109,7 @@ def get_2D_peaks(arr2D, plot=False, amp_min=DEFAULT_AMP_MIN):
     # find local maxima using our fliter shape
     local_max = maximum_filter(arr2D, footprint=neighborhood) == arr2D
     background = (arr2D == 0)
-    eroded_background = binary_erosion(background, structure=neighborhood,
-                                       border_value=1)
+    eroded_background = binary_erosion(background, structure=neighborhood, border_value=1)
 
     # Boolean mask of arr2D with True at peaks
     detected_peaks = local_max ^ eroded_background
@@ -137,7 +137,6 @@ def get_2D_peaks(arr2D, plot=False, amp_min=DEFAULT_AMP_MIN):
       ax.set_title("Spectrogram")
       plt.gca().invert_yaxis()
       plt.show()
-
     return zip(frequency_idx, time_idx)
 
 # Hash list structure: sha1_hash[0:20] time_offset
@@ -147,10 +146,12 @@ def generate_hashes(peaks, fan_value=DEFAULT_FAN_VALUE):
       peaks = sorted(peaks)
 
     # bruteforce all peaks
-    for i in range(len(peaks)):
-      for j in range(1, fan_value):
-        if (i + j) < len(peaks):
 
+    for i in range(len(list(peaks))):
+      
+      for j in range(1, fan_value):
+        
+        if (i + j) < len(tuple(peaks)):
           # take current & next peak frequency value
           freq1 = peaks[i][IDX_FREQ_I]
           freq2 = peaks[i + j][IDX_FREQ_I]
@@ -163,6 +164,11 @@ def generate_hashes(peaks, fan_value=DEFAULT_FAN_VALUE):
           t_delta = t2 - t1
 
           # check if delta is between min & max
+          
           if t_delta >= MIN_HASH_TIME_DELTA and t_delta <= MAX_HASH_TIME_DELTA:
-            h = hashlib.sha1("%s|%s|%s" % (str(freq1), str(freq2), str(t_delta)))
+            freq1 = str(freq1)
+            freq2 = str(freq2)
+            freq2 = freq2.encode()
+            t_delta = str(t_delta)
+            h = hashlib.sha1(f"{freq1}|{freq2}|{t_delta}".encode())
             yield (h.hexdigest()[0:FINGERPRINT_REDUCTION], t1)
